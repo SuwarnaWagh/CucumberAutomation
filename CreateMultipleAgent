@@ -1,0 +1,100 @@
+@BeforeClass
+	public void setUp() {
+		driver = initialization();
+		envirnoment = prop.getProperty("envirnoment");
+		System.out.println("*******Executing the test in " + envirnoment);	
+		driver.get(prop.getProperty("SITurl"));
+		mainpage.loginTest(prop.getProperty("PMACSuserName"), prop.getProperty("PMACSpassWord"), driver);
+		mainpage.clickOnAgentManagment(driver);
+	}
+
+	@DataProvider
+	public Iterator<Object[]> getTestData() {
+		ArrayList<Object[]> testdata = TestUtilily.getDataFromExcel("TotalAgentDetails");
+		return testdata.iterator();
+	}
+
+	@Test(dataProvider = "getTestData")
+	public void A0_fillingAgentDetails(String accountprofile, String profiletype, String lastname, String firstname,
+			String pan, String dateofbirth, String addrstype, String addrs, String city, String state, String district,
+			String pin, String phn, String phnnum, String email, String emailaddrs, String acctype, String acct,
+			String actholdername, String licensetype, String licensenum, String carrier, String status,
+			String contractype, String permission, String stmt, String payment, String anulaization, String model,String code,
+			String coursename, String training, String number, String status1, String date, ITestContext ctx)
+			throws IOException, InterruptedException, EncryptedDocumentException, InvalidFormatException {
+		String agentfile = System.getProperty("user.dir") +"\\src\\com\\IndiaPost\\qa\\testdata\\AgentInputData.xls";
+		InputStream inp = new FileInputStream(agentfile);
+		Workbook wb = WorkbookFactory.create(inp);
+		Sheet sheet = wb.getSheetAt(6);				
+		AddProfile.SelectNewadvisor(driver);
+		AddProfile.SelectNewadvisorProfile(driver);
+		AddProfile.Selectoptions(driver);
+		AddProfile.ClickonContinue(driver);
+		AddProfile.SearchAC(accountprofile, driver);
+		AddProfile.ProfileDetails(profiletype, driver);
+		AddProfile.EnterInfo(lastname, firstname, pan, driver);
+		AddProfile.ProConfirm(dateofbirth, driver);
+		String message = AddProfile.acceptpopup(driver);
+		String agent[] = message.split("-", 3);
+		String agentNo = agent[1].substring(1, 11).trim();
+		
+		
+		AddProfile.Addaddress(addrstype, addrs, city, state, district, pin, driver);
+
+		AddProfile.AddPhone(phn, phnnum, driver);
+		AddProfile.AddEmail(email, emailaddrs, driver);
+
+		AddProfile.AddBank(acctype, acct, actholdername, driver);
+
+		AddProfile.AddLic(licensetype, licensenum, driver);
+		
+		AddProfile.addtraining(code, coursename, training, number, status1, date, driver);
+
+		AddProfile.AddContract(carrier, status, contractype, permission, stmt, payment, anulaization, model, driver);
+		//add office-relationship-office-Add New Office Affiliation-State-MH ,Office Type-CO,Status-Active,select radio buttton-continue-submit-
+		AddProfile.ActivateAdvisor(driver);				
+
+		test = extent.createTest("Created New Agent is "+agentNo);
+		
+		Row row = sheet.getRow(rowCnt);
+		row.createCell(35).setCellValue(agentNo);
+		FileOutputStream outputStream = new FileOutputStream(agentfile);
+		wb.write(outputStream);			
+		rowCnt++;
+		
+		ctx.getCurrentXmlTest().addParameter("Agent Basic Details", "Name- "+firstname+" "+lastname+"  DateOfBirth- "+dateofbirth);
+		ctx.getCurrentXmlTest().addParameter("PAN Number", "PAN- "+pan);
+		ctx.getCurrentXmlTest().addParameter("Phone Number", "Phone- "+phnnum);
+		ctx.getCurrentXmlTest().addParameter("Email", "Email- "+emailaddrs);
+		ctx.getCurrentXmlTest().addParameter("Address","Address- "+addrstype+" "+addrs+" "+city+" "+state+" "+district+" "+pin);
+		ctx.getCurrentXmlTest().addParameter("License Type", "License Number- "+licensenum);
+		ctx.getCurrentXmlTest().addParameter("Contract Type", "Contract Type- "+contractype);
+		ctx.getCurrentXmlTest().addParameter("Status", "Status- "+status);
+		ctx.getCurrentXmlTest().addParameter("Model", "Model-  "+model);
+		ctx.getCurrentXmlTest().addParameter("Adviser Training", " Course Code- "+code + " Course name- "+ coursename + "  Status- "+ status1);
+	}
+
+	
+	@AfterMethod
+	public void getResult(ITestResult result,ITestContext ctx) throws IOException {
+		if (result.getStatus() == ITestResult.FAILURE) {
+			test.log(Status.FAIL, MarkupHelper.createLabel(result.getName() + " Test case FAILED due to below issues:",
+					ExtentColor.RED));
+			test.fail(result.getThrowable());
+		} else if (result.getStatus() == ITestResult.SUCCESS) {
+			test.log(Status.PASS, MarkupHelper.createLabel(result.getName() + " PASSED ", ExtentColor.GREEN));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Agent Basic Details"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("PAN Number"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Phone Number"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Email"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Address"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("License Type"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Adviser Training"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Contract Type"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Status"));
+			test.log(Status.PASS, ctx.getCurrentXmlTest().getParameter("Model"));
+		} else {
+			test.log(Status.SKIP, MarkupHelper.createLabel(result.getName() + " SKIPPED", ExtentColor.ORANGE));
+			test.skip(result.getThrowable());
+		}
+	}
